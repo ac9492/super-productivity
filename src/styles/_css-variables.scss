@@ -431,7 +431,9 @@ body {
 }
 
 body.isDarkTheme {
-  --scheduled-date-upcoming: #ce93d8;
+  --scheduled-date-today: #4ade80;
+  --scheduled-date-tomorrow: #ffdf00;
+  --scheduled-date-upcoming: #d494ff;
   --surface-0: var(--dark0);
   --surface-1: #131314;
   --surface-2: var(--dark3);
@@ -613,9 +615,10 @@ body.isDarkTheme {
 
 /* stylelint-disable-next-line no-duplicate-selectors -- layered token file: Cat B follows Layer 1 primitives on the same selector */
 body {
-  --scheduled-date-today: color-mix(in srgb, var(--color-success) 60%, var(--text-color));
-  --scheduled-date-tomorrow: color-mix(in srgb, var(--sun-yellow) 45%, var(--text-color));
-  --scheduled-date-upcoming: #7040a0;
+  // Saturated text colors: deeper on light surfaces, brighter in dark mode.
+  --scheduled-date-today: #007a29;
+  --scheduled-date-tomorrow: #886100;
+  --scheduled-date-upcoming: #7920c8;
   // Background colors (Cat B)
   --bg-drag-col: rgb(242, 242, 242);
   --bg-slightly-lighter: var(--bg);
