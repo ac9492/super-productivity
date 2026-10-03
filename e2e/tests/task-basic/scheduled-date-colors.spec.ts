@@ -82,9 +82,7 @@ test('scheduled badges color date ranges in light and dark mode without changing
       (isDark) => document.body.classList.toggle('isDarkTheme', isDark),
       dark,
     );
-    for (const color of dark
-      ? ['overdue', 'today', 'tomorrow', 'upcoming']
-      : ['today', 'tomorrow', 'upcoming']) {
+    for (const color of ['today', 'tomorrow', 'upcoming']) {
       const badge = page
         .locator('.schedule-btn[data-scheduled-date-color="' + color + '"] .time-badge')
         .first();
@@ -114,6 +112,22 @@ test('scheduled badges color date ranges in light and dark mode without changing
         color + ' contrast in ' + (dark ? 'dark' : 'light'),
       ).toBeGreaterThanOrEqual(4.5);
     }
+    // Overdue follows the user's existing warning palette in either mode.
+    const overdue = page
+      .locator('.schedule-btn[data-scheduled-date-color="overdue"]')
+      .first();
+    const warningColors = await overdue.evaluate((button) => {
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--c-warn)';
+      button.appendChild(probe);
+      const expected = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        expected,
+        actual: getComputedStyle(button.querySelector('mat-icon')!).color,
+      };
+    });
+    expect(warningColors.actual).toBe(warningColors.expected);
     const matchingColors = await page.locator('.schedule-btn').evaluateAll((buttons) =>
       buttons.map((button) => {
         const icon = button.querySelector('mat-icon')!;

@@ -431,10 +431,9 @@ body {
 }
 
 body.isDarkTheme {
-  --scheduled-date-overdue: #ff9494;
-  --scheduled-date-today: #4ade80;
-  --scheduled-date-tomorrow: #ffb52e;
-  --scheduled-date-upcoming: #d494ff;
+  --scheduled-date-today: #00d45a;
+  --scheduled-date-tomorrow: #ffaa00;
+  --scheduled-date-upcoming: #d580ff;
   --surface-0: var(--dark0);
   --surface-1: #131314;
   --surface-2: var(--dark3);
@@ -620,7 +619,7 @@ body {
   --scheduled-date-overdue: var(--c-warn);
   --scheduled-date-today: #007a29;
   --scheduled-date-tomorrow: #b45b00;
-  --scheduled-date-upcoming: #7920c8;
+  --scheduled-date-upcoming: #8000d0;
   // Background colors (Cat B)
   --bg-drag-col: rgb(242, 242, 242);
   --bg-slightly-lighter: var(--bg);
