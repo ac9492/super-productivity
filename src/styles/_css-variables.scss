@@ -616,7 +616,6 @@ body.isDarkTheme {
 /* stylelint-disable-next-line no-duplicate-selectors -- layered token file: Cat B follows Layer 1 primitives on the same selector */
 body {
   // Saturated text colors: deeper on light surfaces, brighter in dark mode.
-  --scheduled-date-overdue: var(--c-warn);
   --scheduled-date-today: #007a29;
   --scheduled-date-tomorrow: #b45b00;
   --scheduled-date-upcoming: #8000d0;

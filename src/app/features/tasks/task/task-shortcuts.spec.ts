@@ -220,7 +220,6 @@ describe('TaskComponent shortcut handling', () => {
           provide: GlobalTrackingIntervalService,
           useValue: jasmine.createSpyObj('GlobalTrackingIntervalService', [], {
             todayDateStr: signal('2026-05-05'),
-            minuteTimestamp: signal(new Date(2026, 4, 5, 12).getTime()),
           }),
         },
         {
@@ -276,16 +275,16 @@ describe('TaskComponent shortcut handling', () => {
       expect(component.scheduledDateColor()).toBe('overdue');
     });
 
-    it('updates an untouched timed task when the shared clock passes its scheduled time', () => {
-      const clock = TestBed.inject(GlobalTrackingIntervalService);
-      const scheduled = new Date(2026, 4, 5, 13).getTime();
+    it('preserves master overdue behavior for an elapsed scheduled time today', () => {
+      const dateService = TestBed.inject(DateService) as jasmine.SpyObj<DateService>;
+      Object.defineProperty(dateService, 'isToday', { value: () => true });
+      const scheduled = new Date(2026, 4, 5, 11).getTime();
       fixture.componentRef.setInput('task', {
         ...createTopLevelTask('Task'),
         dueWithTime: scheduled,
       });
       expect(component.scheduledDateColor()).toBe('today');
-      (clock.minuteTimestamp as WritableSignal<number>).set(scheduled + 60_000);
-      expect(component.scheduledDateColor()).toBe('overdue');
+      expect(component.isOverdue()).toBeFalsy();
     });
   });
 

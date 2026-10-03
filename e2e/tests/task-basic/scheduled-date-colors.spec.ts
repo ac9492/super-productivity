@@ -20,7 +20,7 @@ test('scheduled badges color date ranges in light and dark mode without changing
     { days: 9, color: '' },
     { days: 1, color: 'tomorrow', timed: true },
     { days: 1, color: 'tomorrow', timed: true, reminder: true },
-    { days: 0, color: 'overdue', timed: true, elapsed: true },
+    { days: 0, color: 'today', timed: true, elapsed: true },
   ];
   for (const range of ranges) {
     const title =
@@ -112,10 +112,11 @@ test('scheduled badges color date ranges in light and dark mode without changing
         color + ' contrast in ' + (dark ? 'dark' : 'light'),
       ).toBeGreaterThanOrEqual(4.5);
     }
-    // Overdue follows the user's existing warning palette in either mode.
+    // Overdue preserves master's host state and warning palette in either mode.
     const overdue = page
       .locator('.schedule-btn[data-scheduled-date-color="overdue"]')
       .first();
+    await expect(overdue.locator('xpath=ancestor::task')).toHaveClass(/isOverdue/);
     const warningColors = await overdue.evaluate((button) => {
       const probe = document.createElement('span');
       probe.style.color = 'var(--c-warn)';

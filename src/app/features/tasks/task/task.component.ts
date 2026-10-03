@@ -293,12 +293,12 @@ export class TaskComponent implements OnDestroy, AfterViewInit {
   scheduledDateColor = computed(() => {
     const task = this.task();
     if (task.isDone || (!task.dueDay && !task.dueWithTime)) return '';
+    // Preserve master's overdue classification and warning palette.
+    if (this.isOverdue()) return 'overdue';
     return getScheduledDateColor(
       task,
       this.globalTrackingIntervalService.todayDateStr(),
       this._dateService.getStartOfNextDayDiffMs(),
-      // Only timed tasks depend on the shared minute clock; no per-row timer.
-      task.dueWithTime ? this.globalTrackingIntervalService.minuteTimestamp() : 0,
     );
   });
   hasTimeConflict = computed(() => {
