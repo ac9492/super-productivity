@@ -416,7 +416,7 @@ done-toggle {
 
 // One semantic color drives the scheduled-date icon and its text badge.
 .schedule-btn[data-scheduled-date-color='overdue'] {
-  --scheduled-date-color: var(--c-warn);
+  --scheduled-date-color: var(--scheduled-date-overdue);
 }
 
 .schedule-btn[data-scheduled-date-color='today'] {

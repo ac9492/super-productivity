@@ -82,7 +82,9 @@ test('scheduled badges color date ranges in light and dark mode without changing
       (isDark) => document.body.classList.toggle('isDarkTheme', isDark),
       dark,
     );
-    for (const color of ['today', 'tomorrow', 'upcoming']) {
+    for (const color of dark
+      ? ['overdue', 'today', 'tomorrow', 'upcoming']
+      : ['today', 'tomorrow', 'upcoming']) {
       const badge = page
         .locator('.schedule-btn[data-scheduled-date-color="' + color + '"] .time-badge')
         .first();
