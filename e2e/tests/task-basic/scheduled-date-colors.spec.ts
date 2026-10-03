@@ -18,16 +18,24 @@ test('scheduled badges color date ranges in light and dark mode without changing
     { days: 2, color: 'upcoming' },
     { days: 8, color: 'upcoming' },
     { days: 9, color: '' },
+    { days: 1, color: 'tomorrow', timed: true },
+    { days: 1, color: 'tomorrow', timed: true, reminder: true },
+    { days: 0, color: 'overdue', timed: true, elapsed: true },
   ];
   for (const range of ranges) {
-    const title = testPrefix + ' date ' + range.days;
+    const title =
+      testPrefix +
+      ' date ' +
+      range.days +
+      (range.timed ? ' timed' : '') +
+      (range.reminder ? ' reminder' : '');
     await workViewPage.addTask(title);
     const row = page
       .locator('task')
       .filter({ has: page.locator('task-title', { hasText: title }) });
     const taskId = await row.getAttribute('data-task-id');
     await page.evaluate(
-      ({ id, days }) => {
+      ({ id, days, timed, reminder, elapsed }) => {
         const date = new Date();
         date.setDate(date.getDate() + days);
         const dueDay = [
@@ -35,6 +43,13 @@ test('scheduled badges color date ranges in light and dark mode without changing
           String(date.getMonth() + 1).padStart(2, '0'),
           String(date.getDate()).padStart(2, '0'),
         ].join('-');
+        date.setHours(23, 59, 0, 0);
+        const dueWithTime = elapsed ? Date.now() - 60_000 : date.getTime();
+        const changes = {
+          dueDay,
+          ...(timed ? { dueWithTime } : {}),
+          ...(reminder ? { remindAt: dueWithTime } : {}),
+        };
         const store = (
           window as unknown as {
             __e2eTestHelpers: { store: { dispatch: (action: unknown) => void } };
@@ -42,13 +57,19 @@ test('scheduled badges color date ranges in light and dark mode without changing
         ).__e2eTestHelpers.store;
         store.dispatch({
           type: '[Task Shared] updateTask',
-          task: { id, changes: { dueDay } },
+          task: { id, changes },
           meta: { isPersistent: true, entityType: 'TASK', entityId: id, opType: 'UPD' },
         });
       },
-      { id: taskId, days: range.days },
+      {
+        id: taskId,
+        days: range.days,
+        timed: !!range.timed,
+        reminder: !!range.reminder,
+        elapsed: !!range.elapsed,
+      },
     );
-    await expect(row.locator('.schedule-btn .time-badge')).toHaveAttribute(
+    await expect(row.locator('.schedule-btn')).toHaveAttribute(
       'data-scheduled-date-color',
       range.color,
     );
@@ -63,7 +84,7 @@ test('scheduled badges color date ranges in light and dark mode without changing
     );
     for (const color of ['today', 'tomorrow', 'upcoming']) {
       const badge = page
-        .locator('.time-badge[data-scheduled-date-color="' + color + '"]')
+        .locator('.schedule-btn[data-scheduled-date-color="' + color + '"] .time-badge')
         .first();
       const contrast = await badge.evaluate((element) => {
         const canvas = document.createElement('canvas');
@@ -91,6 +112,17 @@ test('scheduled badges color date ranges in light and dark mode without changing
         color + ' contrast in ' + (dark ? 'dark' : 'light'),
       ).toBeGreaterThanOrEqual(4.5);
     }
+    const matchingColors = await page.locator('.schedule-btn').evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const icon = button.querySelector('mat-icon')!;
+        const badge = button.querySelector('.time-badge')!;
+        return {
+          icon: getComputedStyle(icon).color,
+          badge: getComputedStyle(badge).color,
+        };
+      }),
+    );
+    for (const colors of matchingColors) expect(colors.icon).toBe(colors.badge);
     expect(await badges.allTextContents()).toEqual(text);
     await page.screenshot({
       path:
