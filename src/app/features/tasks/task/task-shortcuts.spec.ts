@@ -32,6 +32,7 @@ import { PlannerService } from '../../planner/planner.service';
 import { AddSubtaskInputService } from '../add-subtask-input/add-subtask-input.service';
 import { TaskDuplicateService } from '../task-duplicate.service';
 import { TaskMultiSelectService } from '../task-multi-select.service';
+import { TagService } from '../../tag/tag.service';
 
 describe('TaskComponent shortcut handling', () => {
   let fixture: import('@angular/core/testing').ComponentFixture<TaskComponent>;
@@ -220,8 +221,10 @@ describe('TaskComponent shortcut handling', () => {
           provide: GlobalTrackingIntervalService,
           useValue: jasmine.createSpyObj('GlobalTrackingIntervalService', [], {
             todayDateStr: signal('2026-05-05'),
+            clockTimestamp: signal(new Date(2026, 4, 5, 12).getTime()),
           }),
         },
+        { provide: TagService, useValue: { scheduledTodayColor: signal(null) } },
         {
           provide: LayoutService,
           useValue: jasmine.createSpyObj('LayoutService', [], {
@@ -275,16 +278,37 @@ describe('TaskComponent shortcut handling', () => {
       expect(component.scheduledDateColor()).toBe('overdue');
     });
 
-    it('preserves master overdue behavior for an elapsed scheduled time today', () => {
-      const dateService = TestBed.inject(DateService) as jasmine.SpyObj<DateService>;
-      Object.defineProperty(dateService, 'isToday', { value: () => true });
-      const scheduled = new Date(2026, 4, 5, 11).getTime();
+    it('updates an untouched timed task when the shared clock reaches its time', () => {
+      const clock = TestBed.inject(GlobalTrackingIntervalService);
+      const scheduled = new Date(2026, 4, 5, 13).getTime();
       fixture.componentRef.setInput('task', {
         ...createTopLevelTask('Task'),
         dueWithTime: scheduled,
       });
       expect(component.scheduledDateColor()).toBe('today');
-      expect(component.isOverdue()).toBeFalsy();
+      (clock.clockTimestamp as WritableSignal<number>).set(scheduled);
+      expect(component.scheduledDateColor()).toBe('overdue');
+    });
+
+    it('removes schedule colors while tracking and restores the current state on pause', () => {
+      const clock = TestBed.inject(GlobalTrackingIntervalService);
+      const currentId = taskServiceSpy.currentTaskId as unknown as WritableSignal<
+        string | null
+      >;
+      const scheduled = new Date(2026, 4, 5, 13).getTime();
+      fixture.componentRef.setInput('task', {
+        ...createTopLevelTask('Task'),
+        dueWithTime: scheduled,
+      });
+      expect(component.scheduledDateColor()).toBe('today');
+      currentId.set('top-1');
+      expect(component.scheduledDateColor()).toBe('');
+      (clock.clockTimestamp as WritableSignal<number>).set(scheduled + 1);
+      expect(component.scheduledDateColor()).toBe('');
+      currentId.set(null);
+      expect(component.scheduledDateColor()).toBe('overdue');
+      currentId.set('some-other-task');
+      expect(component.scheduledDateColor()).toBe('overdue');
     });
   });
 

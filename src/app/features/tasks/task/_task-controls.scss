@@ -415,6 +415,10 @@ done-toggle {
 }
 
 // One semantic color drives the scheduled-date icon and its text badge.
+.schedule-btn[data-scheduled-date-color='overdue'] {
+  --scheduled-date-color: var(--c-warn);
+}
+
 .schedule-btn[data-scheduled-date-color='today'] {
   --scheduled-date-color: var(--scheduled-date-today);
 }
@@ -427,6 +431,7 @@ done-toggle {
   --scheduled-date-color: var(--scheduled-date-upcoming);
 }
 
+.schedule-btn[data-scheduled-date-color='overdue'],
 .schedule-btn[data-scheduled-date-color='today'],
 .schedule-btn[data-scheduled-date-color='tomorrow'],
 .schedule-btn[data-scheduled-date-color='upcoming'] {
@@ -437,17 +442,6 @@ done-toggle {
 
   .time-badge {
     color: var(--scheduled-date-color);
-  }
-}
-
-// Keep master's overdue icon rule and apply the same warning color to its badge.
-:host.isOverdue .schedule-btn {
-  mat-icon {
-    color: var(--c-warn) !important;
-  }
-
-  .time-badge {
-    color: var(--c-warn);
   }
 }
 
