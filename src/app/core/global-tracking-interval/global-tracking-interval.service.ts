@@ -91,6 +91,11 @@ export class GlobalTrackingIntervalService {
    */
   minuteTick$: Observable<unknown> = this._createMinuteTickObservable();
 
+  // One clock subscription for all scheduled task badges, including resume updates.
+  minuteTimestamp = toSignal(this.minuteTick$.pipe(map(() => Date.now())), {
+    initialValue: Date.now(),
+  });
+
   // Shared signal to avoid creating 200+ subscriptions in task components
   todayDateStr = toSignal(this.todayDateStr$, {
     initialValue: this._dateService.todayStr(),

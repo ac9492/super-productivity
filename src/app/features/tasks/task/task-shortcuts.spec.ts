@@ -210,7 +210,7 @@ describe('TaskComponent shortcut handling', () => {
           provide: DateService,
           useValue: jasmine.createSpyObj(
             'DateService',
-            ['isToday', 'getLogicalTodayDate'],
+            ['isToday', 'getLogicalTodayDate', 'getStartOfNextDayDiffMs'],
             {
               isToday: () => false,
             },
@@ -220,6 +220,7 @@ describe('TaskComponent shortcut handling', () => {
           provide: GlobalTrackingIntervalService,
           useValue: jasmine.createSpyObj('GlobalTrackingIntervalService', [], {
             todayDateStr: signal('2026-05-05'),
+            minuteTimestamp: signal(new Date(2026, 4, 5, 12).getTime()),
           }),
         },
         {
@@ -254,6 +255,38 @@ describe('TaskComponent shortcut handling', () => {
     fixture.componentRef.setInput('task', createSubTask(''));
     fixture.componentRef.setInput('isInSubTaskList', true);
     fixture.componentRef.setInput('isBacklog', false);
+  });
+
+  describe('scheduled-date badge colors', () => {
+    beforeEach(() => {
+      const dateService = TestBed.inject(DateService) as jasmine.SpyObj<DateService>;
+      dateService.getStartOfNextDayDiffMs.and.returnValue(0);
+    });
+
+    it('updates when the shared logical day changes', () => {
+      fixture.componentRef.setInput('task', {
+        ...createTopLevelTask('Task'),
+        dueDay: '2026-05-06',
+      });
+      expect(component.scheduledDateColor()).toBe('tomorrow');
+      const clock = TestBed.inject(GlobalTrackingIntervalService);
+      (clock.todayDateStr as WritableSignal<string>).set('2026-05-06');
+      expect(component.scheduledDateColor()).toBe('today');
+      (clock.todayDateStr as WritableSignal<string>).set('2026-05-07');
+      expect(component.scheduledDateColor()).toBe('overdue');
+    });
+
+    it('updates an untouched timed task when the shared clock passes its scheduled time', () => {
+      const clock = TestBed.inject(GlobalTrackingIntervalService);
+      const scheduled = new Date(2026, 4, 5, 13).getTime();
+      fixture.componentRef.setInput('task', {
+        ...createTopLevelTask('Task'),
+        dueWithTime: scheduled,
+      });
+      expect(component.scheduledDateColor()).toBe('today');
+      (clock.minuteTimestamp as WritableSignal<number>).set(scheduled + 60_000);
+      expect(component.scheduledDateColor()).toBe('overdue');
+    });
   });
 
   describe('touch selection mode', () => {

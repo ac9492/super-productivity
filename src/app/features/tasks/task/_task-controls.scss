@@ -423,6 +423,22 @@ done-toggle {
   color: var(--c-warn) !important;
 }
 
+.time-badge[data-scheduled-date-color='overdue'] {
+  color: var(--c-warn);
+}
+
+.time-badge[data-scheduled-date-color='today'] {
+  color: var(--scheduled-date-today);
+}
+
+.time-badge[data-scheduled-date-color='tomorrow'] {
+  color: var(--scheduled-date-tomorrow);
+}
+
+.time-badge[data-scheduled-date-color='upcoming'] {
+  color: var(--scheduled-date-upcoming);
+}
+
 // Time conflict indicator: a danger "!" shown next to the schedule control,
 // replacing the former task-box border. It's a bare <mat-icon> dropped into the
 // stretch-aligned controls row, so it needs explicit centering and sizing.
