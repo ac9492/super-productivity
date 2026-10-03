@@ -93,7 +93,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ICAL_TYPE, PLAINSPACE_TYPE } from '../../issue/issue.const';
 import { TaskTitleComponent } from '../../../ui/task-title/task-title.component';
 import { MatIcon } from '@angular/material/icon';
-import { MatIconButton, MatMiniFabButton } from '@angular/material/button';
+import { MatButton, MatIconButton, MatMiniFabButton } from '@angular/material/button';
 import { TaskHoverControlsComponent } from './task-hover-controls/task-hover-controls.component';
 import { TaskPriorityIndicatorComponent } from '../task-priority-indicator/task-priority-indicator.component';
 import { ProgressBarComponent } from '../../../ui/progress-bar/progress-bar.component';
@@ -153,6 +153,7 @@ const isInteractiveTarget = (target: EventTarget | null): boolean =>
     '(click)': 'onHostClick($event)',
   },
   imports: [
+    MatButton,
     MatIcon,
     MatMenuTrigger,
     MatIconButton,
@@ -311,6 +312,14 @@ export class TaskComponent implements OnDestroy, AfterViewInit {
   progress = computed<number>(() => {
     const t = this.task();
     return (t.timeEstimate && (t.timeSpent / t.timeEstimate) * 100) || 0;
+  });
+
+  readonly subtaskProgress = computed(() => {
+    const subtasks = this.task().subTasks ?? [];
+    return {
+      total: subtasks.length,
+      done: subtasks.reduce((count, task) => count + Number(task.isDone), 0),
+    };
   });
 
   // Derived from the pair rather than rounded on its own — see the helper's doc. #9190
