@@ -95,6 +95,13 @@ describe('TaskMultiDragService', () => {
     expect(service.ids()).toEqual(['b', 'a']);
     expect(service.selectionSize()).toBe(2);
   });
+  it('previews all dragged parents in snapshot order and clears their visual state', () => {
+    start();
+    expect(service.previewTasks().map((item) => item.id)).toEqual(['b', 'a']);
+    expect(service.draggedIds()).toEqual(new Set(['b', 'a']));
+    service.clear();
+    expect(service.draggedIds().size).toBe(0);
+  });
   it('does not group an unselected drag or a subtask drag', () => {
     start();
     service.start(tasks()['c']);

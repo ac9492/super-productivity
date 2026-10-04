@@ -36,8 +36,20 @@ test.describe('Multi-task drag', () => {
       .allTextContents();
     await startDrag(page, row(names[0]).locator('done-toggle'));
     await expect(page.locator('.multi-task-drag-preview')).toContainText('2 selected');
+    await expect(page.locator('.multi-task-drag-preview-row')).toHaveText(order);
+    const testInfo = test.info();
+    await testInfo.attach('group-drag-preview', {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    });
+    await expect(row(names[1])).toHaveCSS('opacity', '0');
+    await expect(page.locator('.cdk-drag-placeholder .task-title')).toHaveCSS(
+      'visibility',
+      'hidden',
+    );
     await drop(page, section('Left').locator('task-list').first());
     await expect(section('Left').locator('task .task-title')).toHaveText(order);
+    await expect(row(names[1])).toHaveCSS('opacity', '1');
     await select(page, [names[0], names[1]]);
     await startDrag(page, row(names[0]).locator('done-toggle'));
     await drop(page, section('Right').locator('task-list').first());
@@ -154,6 +166,33 @@ test.describe('Multi-task drag', () => {
     }, testPrefix + '-Seed');
     await expect(page.locator('task')).toHaveCount(500);
     await createSection(page, 'Target');
+    await select(page, ['Large 470']);
+    await page
+      .locator('task')
+      .filter({ has: page.locator('task-title', { hasText: 'Large 498', exact: true }) })
+      .locator('.task-title')
+      .click({ modifiers: ['Shift'] });
+    await expect(page.locator('task-multi-select-bar .bar')).toContainText('29 selected');
+    await startDrag(
+      page,
+      page
+        .locator('task')
+        .filter({
+          has: page.locator('task-title', { hasText: 'Large 498', exact: true }),
+        })
+        .locator('done-toggle'),
+    );
+    await expect(page.locator('.multi-task-drag-preview-row')).toHaveCount(29);
+    await expect(page.locator('.multi-task-drag-preview-count')).toContainText(
+      '29 selected',
+    );
+    const previewBox = await page.locator('.multi-task-drag-preview').boundingBox();
+    const titlesBox = await page.locator('.multi-task-drag-preview-tasks').boundingBox();
+    expect(titlesBox!.height).toBeLessThanOrEqual(360);
+    expect(previewBox!.height - titlesBox!.height).toBeLessThan(100);
+    await page.keyboard.press('Escape');
+    await drop(page, page.locator('.section-container task-list').first());
+    await expect(page.locator('.no-section task')).toHaveCount(500);
     await select(page, ['Large 496', 'Large 497']);
     await page
       .locator('task')
@@ -214,6 +253,8 @@ test.describe('Multi-task drag', () => {
     await drop(page, page.locator('.section-container task-list').first());
     await expect(page.locator('.no-section task')).toHaveCount(2);
     await expect(page.locator('.section-container task')).toHaveCount(0);
+    await expect(page.locator('.no-section task').first()).toHaveCSS('opacity', '1');
+    await expect(page.locator('.no-section task').last()).toHaveCSS('opacity', '1');
     await expect(page.locator('.multi-task-drag-preview')).toHaveCount(0);
   });
 });

@@ -87,6 +87,8 @@ describe('TaskListComponent', () => {
           useValue: {
             ids: () => [],
             selectedIds: () => new Set(),
+            draggedIds: () => new Set(),
+            previewTasks: () => [],
             selectionSize: () => 0,
             start: () => {},
             clear: () => {},

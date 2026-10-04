@@ -38,7 +38,16 @@ export class TaskMultiDragService {
       task ? (this._projects().entities[task.projectId]?.taskIds ?? []) : [],
     );
   });
+  readonly draggedIds = computed(() => new Set(this.ids()));
   readonly selectedIds = this._selection.selectedIds;
+  readonly previewTasks = computed(() => {
+    const ids = this.ids().length ? this.ids() : [...this.selectedIds()];
+    const entities = this._tasks();
+    return ids.flatMap((id) => {
+      const task = entities[id];
+      return task && !task.parentId ? [task] : [];
+    });
+  });
   readonly selectionSize = computed(
     () =>
       [...this.selectedIds()].filter((id) => {
