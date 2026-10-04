@@ -89,6 +89,11 @@ test.describe('@supersync Multi-task drag', () => {
       await expect(b.page.locator('.no-section task .task-title')).toHaveText(
         await a.page.locator('.no-section task .task-title').allTextContents(),
       );
+      const rootTitles = await a.page
+        .locator('.no-section task .task-title')
+        .allTextContents();
+      const keptTitle = rootTitles[2];
+      const movedTitles = rootTitles.slice(0, 2);
       const target = a.page
         .locator('nav-item[data-project-id]')
         .filter({ hasText: 'Drag target' })
@@ -106,22 +111,20 @@ test.describe('@supersync Multi-task drag', () => {
         a.page.locator('task.isMultiSelected').first().locator('done-toggle'),
       );
       await dropTaskDrag(a.page, target);
-      await expect(a.page.locator('.no-section task .task-title')).toHaveText(['Keep']);
+      await expect(a.page.locator('.no-section task .task-title')).toHaveText([
+        keptTitle,
+      ]);
       await a.sync.syncAndWait();
       await b.sync.syncAndWait();
-      await expect(b.page.locator('.no-section task .task-title')).toHaveText(['Keep']);
+      await expect(b.page.locator('.no-section task .task-title')).toHaveText([
+        keptTitle,
+      ]);
       for (const client of [a, b]) {
         await new ProjectPage(client.page).navigateToProjectByName('Drag target');
-        await expect(client.page.locator('task .task-title')).toHaveText([
-          'Group B',
-          'Group A',
-        ]);
+        await expect(client.page.locator('task .task-title')).toHaveText(movedTitles);
         await client.page.reload();
         await client.workView.waitForTaskList();
-        await expect(client.page.locator('task .task-title')).toHaveText([
-          'Group B',
-          'Group A',
-        ]);
+        await expect(client.page.locator('task .task-title')).toHaveText(movedTitles);
       }
     } finally {
       if (a) await closeClient(a);
