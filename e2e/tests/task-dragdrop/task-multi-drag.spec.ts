@@ -71,6 +71,74 @@ test.describe('Multi-task drag', () => {
     ]);
   });
 
+  test('Shift-click selects across sections and drags the displayed range together', async ({
+    page,
+    workViewPage,
+    projectPage,
+    testPrefix,
+  }) => {
+    await workViewPage.waitForTaskList();
+    await projectPage.createProject('Section range');
+    await projectPage.navigateToProjectByName('Section range');
+    const names = ['A', 'B', 'C'].map((name) => testPrefix + '-' + name);
+    for (const name of [...names].reverse()) await workViewPage.addTask(name);
+    for (const name of ['Left', 'Right', 'Destination']) await createSection(page, name);
+    const section = (name: string): Locator =>
+      page.locator('.section-container').filter({
+        has: page.locator('.collapsible-title', { hasText: name }),
+      });
+    const row = (name: string): Locator =>
+      page
+        .locator('task')
+        .filter({
+          has: page.locator('task-title', { hasText: name }),
+        })
+        .first();
+    for (const [taskName, sectionName] of [
+      [names[1], 'Left'],
+      [names[2], 'Right'],
+    ]) {
+      await startDrag(page, row(taskName).locator('done-toggle'));
+      await drop(page, section(sectionName).locator('task-list'));
+      await expect(section(sectionName).locator('task .task-title')).toHaveText([
+        taskName,
+      ]);
+    }
+    await row(names[0])
+      .locator('.task-title')
+      .click({ modifiers: ['Control'] });
+    await row(names[2])
+      .locator('.task-title')
+      .click({ modifiers: ['Shift'] });
+    await expect(page.locator('task.isMultiSelected .task-title')).toHaveText(names);
+    await expect(page.locator('task-multi-select-bar .bar')).toContainText('3 selected');
+    const sourceBox = await row(names[1]).boundingBox();
+    if (!sourceBox) throw new Error('Missing selected source');
+    await startDrag(page, row(names[1]).locator('done-toggle'));
+    const targetBox = await section('Destination')
+      .locator('.task-list-inner')
+      .boundingBox();
+    if (!targetBox) throw new Error('Missing destination section');
+    const halfWidth = targetBox.width / 2;
+    const halfHeight = targetBox.height / 2;
+    // Enter the intended section directly without traversing other drop lists,
+    // whose temporary placeholders would move the destination during the gesture.
+    const sourceHalfHeight = sourceBox.height / 2;
+    await page.mouse.move(targetBox.x - 10, sourceBox.y + sourceHalfHeight);
+    await page.mouse.move(targetBox.x - 10, targetBox.y + halfHeight, { steps: 10 });
+    await page.mouse.move(targetBox.x + halfWidth, targetBox.y + halfHeight, {
+      steps: 25,
+    });
+    await page.mouse.up();
+    await expect(section('Destination').locator('task .task-title')).toHaveText(names);
+    await expect(page.locator('.no-section task')).toHaveCount(0);
+    await expect(section('Left').locator('task')).toHaveCount(0);
+    await expect(section('Right').locator('task')).toHaveCount(0);
+    await page.reload();
+    await workViewPage.waitForTaskList();
+    await expect(section('Destination').locator('task .task-title')).toHaveText(names);
+  });
+
   test('drops three selected tasks into an empty section without re-aiming', async ({
     page,
     workViewPage,
