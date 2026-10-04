@@ -39,6 +39,7 @@ const PLANNER_TASK_PROVIDERS = [
     provide: GlobalConfigService,
     useValue: {
       cfg: () => null,
+      localization: () => ({}),
       appFeatures: () => ({ isTimeTrackingEnabled: false }),
     },
   },
@@ -206,6 +207,26 @@ describe('BoardPanelComponent - Backlog Feature', () => {
     fixture.detectChanges();
     expect(getComputedStyle(icon).color).toBe(defaultIconColor);
     expect(getComputedStyle(badge).color).toBe(defaultIconColor);
+  });
+
+  it('refreshes timed Board colors at expiry and suppresses them while tracking', () => {
+    const interval = TestBed.inject(GlobalTrackingIntervalService) as unknown as {
+      clockTimestamp: WritableSignal<number>;
+    };
+    const currentTaskId = TestBed.inject(TaskService).currentTaskId as WritableSignal<
+      string | null
+    >;
+    const dueWithTime = new Date(2026, 8, 12, 12, 1).getTime();
+    const task = { ...component.tasks()[0], dueDay: undefined, dueWithTime };
+    expect(component.scheduledDateColor(task)).toBe('today');
+    interval.clockTimestamp.set(dueWithTime);
+    expect(component.scheduledDateColor(task)).toBe('overdue');
+    currentTaskId.set(task.id);
+    expect(component.scheduledDateColor(task)).toBe('');
+    currentTaskId.set(null);
+    expect(component.scheduledDateColor(task)).toBe('overdue');
+    expect(component.scheduledDateColor({ ...task, isDone: true })).toBe('');
+    expect(component.scheduledDateColor({ ...task, dueWithTime: undefined })).toBe('');
   });
 
   it('should only include backlog tasks when backlogState is OnlyBacklog', () => {

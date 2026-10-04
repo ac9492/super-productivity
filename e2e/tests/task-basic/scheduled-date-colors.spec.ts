@@ -285,6 +285,18 @@ test('applies Today colors to Board cards and follows Today customization/reset'
     'data-scheduled-date-color',
     'today',
   );
+  const inboxColors: { dark: boolean; color: string }[] = [];
+  for (const dark of [false, true]) {
+    await page.evaluate(
+      (value) => document.body.classList.toggle('isDarkTheme', value),
+      dark,
+    );
+    const color = await inboxRow
+      .locator('.schedule-btn mat-icon')
+      .evaluate((element) => getComputedStyle(element).color);
+    await expect(inboxRow.locator('.schedule-btn .time-badge')).toHaveCSS('color', color);
+    inboxColors.push({ dark, color });
+  }
 
   await page.goto('/#/boards');
   await page
@@ -295,7 +307,7 @@ test('applies Today colors to Board cards and follows Today customization/reset'
   await expect(kanban).toBeVisible();
   await expect(kanban).not.toHaveClass(/mat-tab-body-animating/);
   const createTag = kanban.getByRole('button', { name: 'Create Tag', exact: true });
-  if (await createTag.isVisible()) await createTag.click();
+  await createTag.click();
 
   const card = page
     .locator('[data-board-selection-scope="TODO"] planner-task')
@@ -305,8 +317,6 @@ test('applies Today colors to Board cards and follows Today customization/reset'
   const icon = button.locator('mat-icon');
   const badge = button.locator('.time-badge');
   await expect(button).toHaveAttribute('data-scheduled-date-color', 'today');
-  const defaultColor = await icon.evaluate((element) => getComputedStyle(element).color);
-  await expect(badge).toHaveCSS('color', defaultColor);
 
   const changeTodayColor = async (color: string | null): Promise<void> => {
     await page.evaluate((value) => {
@@ -323,12 +333,19 @@ test('applies Today colors to Board cards and follows Today customization/reset'
     }, color);
   };
 
-  await changeTodayColor('#008080');
-  await expect(icon).toHaveCSS('color', 'rgb(0, 128, 128)');
-  await expect(badge).toHaveCSS('color', 'rgb(0, 128, 128)');
+  for (const { dark, color } of inboxColors) {
+    await page.evaluate(
+      (value) => document.body.classList.toggle('isDarkTheme', value),
+      dark,
+    );
+    await expect(icon).toHaveCSS('color', color);
+    await expect(badge).toHaveCSS('color', color);
+    await changeTodayColor('#008080');
+    await expect(icon).toHaveCSS('color', 'rgb(0, 128, 128)');
+    await expect(badge).toHaveCSS('color', 'rgb(0, 128, 128)');
 
-  await changeTodayColor(null);
-  await expect(icon).toHaveCSS('color', defaultColor);
-  await expect(badge).toHaveCSS('color', defaultColor);
+    await changeTodayColor(null);
+    await expect(icon).toHaveCSS('color', color);
+    await expect(badge).toHaveCSS('color', color);
+  }
 });
-

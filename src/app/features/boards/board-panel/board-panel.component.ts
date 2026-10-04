@@ -111,6 +111,7 @@ export interface BoardPanelNavigation {
     // Angular host bindings use template attribute syntax.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     '[attr.data-board-selection-scope]': 'panelCfg().id',
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     '[style.--scheduled-date-today]': 'tagService.scheduledTodayColor()',
   },
 })
