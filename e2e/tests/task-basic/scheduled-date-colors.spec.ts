@@ -245,3 +245,90 @@ test('updates elapsed dates, suppresses tracking colors and follows the Today ta
     await expect(badge).toHaveCSS('color', red);
   }
 });
+
+test('applies Today colors to Board cards and follows Today customization/reset', async ({
+  page,
+  workViewPage,
+  testPrefix,
+}) => {
+  await page.goto('/#/project/INBOX_PROJECT/tasks');
+  await workViewPage.waitForTaskList();
+  await page.waitForFunction(
+    () => !!(window as unknown as { __e2eTestHelpers?: unknown }).__e2eTestHelpers,
+  );
+
+  const title = testPrefix + ' Board Today color';
+  await workViewPage.addTask(title);
+  const inboxRow = page
+    .locator('task')
+    .filter({ has: page.locator('task-title', { hasText: title }) });
+  const taskId = await inboxRow.getAttribute('data-task-id');
+  await page.evaluate((id) => {
+    const now = new Date();
+    const dueDay = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+    const store = (
+      window as unknown as {
+        __e2eTestHelpers: { store: { dispatch: (action: unknown) => void } };
+      }
+    ).__e2eTestHelpers.store;
+    store.dispatch({
+      type: '[Task Shared] updateTask',
+      task: { id, changes: { dueDay, dueWithTime: null } },
+      meta: { isPersistent: true, entityType: 'TASK', entityId: id, opType: 'UPD' },
+    });
+  }, taskId);
+  await expect(inboxRow.locator('.schedule-btn')).toHaveAttribute(
+    'data-scheduled-date-color',
+    'today',
+  );
+
+  await page.goto('/#/boards');
+  await page
+    .getByRole('tab')
+    .filter({ hasText: /kanban/i })
+    .click();
+  const kanban = page.getByRole('tabpanel', { name: 'Kanban', exact: true });
+  await expect(kanban).toBeVisible();
+  await expect(kanban).not.toHaveClass(/mat-tab-body-animating/);
+  const createTag = kanban.getByRole('button', { name: 'Create Tag', exact: true });
+  if (await createTag.isVisible()) await createTag.click();
+
+  const card = page
+    .locator('[data-board-selection-scope="TODO"] planner-task')
+    .filter({ hasText: title });
+  await expect(card).toBeVisible();
+  const button = card.locator('.schedule-btn');
+  const icon = button.locator('mat-icon');
+  const badge = button.locator('.time-badge');
+  await expect(button).toHaveAttribute('data-scheduled-date-color', 'today');
+  const defaultColor = await icon.evaluate((element) => getComputedStyle(element).color);
+  await expect(badge).toHaveCSS('color', defaultColor);
+
+  const changeTodayColor = async (color: string | null): Promise<void> => {
+    await page.evaluate((value) => {
+      const store = (
+        window as unknown as {
+          __e2eTestHelpers: { store: { dispatch: (action: unknown) => void } };
+        }
+      ).__e2eTestHelpers.store;
+      store.dispatch({
+        type: '[Tag] Update Tag',
+        tag: { id: 'TODAY', changes: { color: value } },
+        meta: { isPersistent: true, entityType: 'TAG', entityId: 'TODAY', opType: 'UPD' },
+      });
+    }, color);
+  };
+
+  await changeTodayColor('#008080');
+  await expect(icon).toHaveCSS('color', 'rgb(0, 128, 128)');
+  await expect(badge).toHaveCSS('color', 'rgb(0, 128, 128)');
+
+  await changeTodayColor(null);
+  await expect(icon).toHaveCSS('color', defaultColor);
+  await expect(badge).toHaveCSS('color', defaultColor);
+});
+
