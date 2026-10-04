@@ -172,6 +172,7 @@
               <div
                 class="sections-wrapper"
                 [class.has-inline-insertion]="isProjectContext()"
+                data-section-selection-scope
                 cdkDropList
                 [cdkDropListEnterPredicate]="acceptSectionDragOnly"
                 (cdkDropListDropped)="dropSection($event)"

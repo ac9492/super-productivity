@@ -1,3 +1,4 @@
+import { TaskMultiDragService } from '../task-multi-drag.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TaskListComponent } from './task-list.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
@@ -81,6 +82,21 @@ describe('TaskListComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TaskListComponent, NoopAnimationsModule],
       providers: [
+        {
+          provide: TaskMultiDragService,
+          useValue: {
+            ids: () => [],
+            selectedIds: () => new Set(),
+            draggedIds: () => new Set(),
+            previewTasks: () => [],
+            selectionSize: () => 0,
+            start: () => {},
+            clear: () => {},
+            finish: () => {},
+            canDrop: () => false,
+            drop: () => Promise.resolve(),
+          },
+        },
         provideMockStore({ initialState: {} }),
         {
           provide: TaskService,
@@ -739,6 +755,59 @@ describe('TaskListComponent', () => {
   // The public drop() handler turns a CdkDragDrop event into the right action,
   // including the placement math (newIds order -> anchor). Covers the
   // event->action translation the reducer specs assume.
+  describe('group drop bounds', () => {
+    let moveGroup: jasmine.Spy;
+    const groupEvent = (point: {
+      x: number;
+      y: number;
+    }): Parameters<TaskListComponent['drop']>[0] =>
+      ({
+        previousContainer: { data: { listId: 'PARENT', listModelId: 'UNDONE' } },
+        container: {
+          data: { listId: 'PARENT', listModelId: 'section', filteredTasks: [] },
+          element: {
+            nativeElement: {
+              getBoundingClientRect: () => ({
+                left: 100,
+                right: 500,
+                top: 300,
+                bottom: 350,
+              }),
+            },
+          },
+        },
+        item: { data: { id: 't1' } },
+        previousIndex: 0,
+        currentIndex: 0,
+        isPointerOverContainer: false,
+        dropPoint: point,
+      }) as unknown as Parameters<TaskListComponent['drop']>[0];
+
+    beforeEach(() => {
+      spyOn(component.multiDrag, 'ids').and.returnValue(['t1', 't2', 't3']);
+      spyOn(component.multiDrag, 'canDrop').and.returnValue(true);
+      moveGroup = spyOn(component.multiDrag, 'drop').and.resolveTo();
+    });
+
+    it('moves the group when the pointer is inside the live section but outside cached bounds', async () => {
+      await component.drop(groupEvent({ x: 300, y: 325 }));
+      expect(moveGroup).toHaveBeenCalledOnceWith('section', 't1', ['t1']);
+      expect(store.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('cancels the group move when released outside cached and live bounds', async () => {
+      await component.drop(groupEvent({ x: 300, y: 400 }));
+      expect(moveGroup).not.toHaveBeenCalled();
+      expect(store.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('still rejects an unsupported target inside its live bounds', async () => {
+      (component.multiDrag.canDrop as jasmine.Spy).and.returnValue(false);
+      await component.drop(groupEvent({ x: 300, y: 325 }));
+      expect(moveGroup).not.toHaveBeenCalled();
+    });
+  });
+
   describe('drop() conversion dispatch', () => {
     type ListData = {
       listId: 'PARENT' | 'SUB';

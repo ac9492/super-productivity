@@ -526,7 +526,12 @@ export class TaskComponent implements OnDestroy, AfterViewInit {
     if (
       !isMultiSelectModifierEvent(ev) &&
       this._multiSelect.isActive() &&
-      !this._multiSelect.isTouchSelectionMode()
+      !this._multiSelect.isTouchSelectionMode() &&
+      !(
+        this._multiSelect.has(this.task().id) &&
+        !this.task().parentId &&
+        this._multiSelect.count() > 1
+      )
     ) {
       this._multiSelect.clear();
     }
@@ -544,6 +549,9 @@ export class TaskComponent implements OnDestroy, AfterViewInit {
       return;
     }
     const isModifierClick = isMultiSelectModifierEvent(ev);
+    // Defer clearing a selected parent until click so CDK can start a group drag.
+    if (!isModifierClick && !this._multiSelect.isTouchSelectionMode())
+      this._multiSelect.clear();
     const isTouchTap = !isModifierClick && this._multiSelect.isTouchSelectionMode();
     if (
       (!isModifierClick && !isTouchTap) ||
@@ -1154,6 +1162,7 @@ export class TaskComponent implements OnDestroy, AfterViewInit {
   }
 
   toggleTaskDone(): void {
+    if (!this._multiSelect.isTouchSelectionMode()) this._multiSelect.clear();
     window.clearTimeout(this._doneAnimationTimeout);
     this.focusNext(true, true);
     this._doneAnimationTimeout = this._taskService.toggleDoneWithAnimation(
@@ -1275,6 +1284,15 @@ export class TaskComponent implements OnDestroy, AfterViewInit {
         id: this.task().id,
       }),
     );
+  }
+
+  clearSelectionOnTitleClick(event: MouseEvent): void {
+    if (
+      !isInteractiveTarget(event.target) &&
+      !isMultiSelectModifierEvent(event) &&
+      !this._multiSelect.isTouchSelectionMode()
+    )
+      this._multiSelect.clear();
   }
 
   titleBarClick(event: MouseEvent): void {
