@@ -541,7 +541,19 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
     this.dropListService.blockAniTrigger$.next();
     if (this.multiDrag.ids().length > 1) {
       if (
-        ev.isPointerOverContainer &&
+        // CDK caches the target bounds before its placeholder moves the source row.
+        // At drop time the original layout is restored, so check its live bounds
+        // as well. Releasing outside both bounds must still cancel the group move.
+        (ev.isPointerOverContainer ||
+          (() => {
+            const bounds = ev.container.element.nativeElement.getBoundingClientRect();
+            return (
+              ev.dropPoint.x >= bounds.left &&
+              ev.dropPoint.x <= bounds.right &&
+              ev.dropPoint.y >= bounds.top &&
+              ev.dropPoint.y <= bounds.bottom
+            );
+          })()) &&
         this.multiDrag.canDrop(
           targetListData.listId,
           targetListData.listModelId,

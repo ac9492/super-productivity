@@ -71,6 +71,38 @@ test.describe('Multi-task drag', () => {
     ]);
   });
 
+  test('drops three selected tasks into an empty section without re-aiming', async ({
+    page,
+    workViewPage,
+    projectPage,
+    testPrefix,
+  }) => {
+    await workViewPage.waitForTaskList();
+    await projectPage.createProject('Natural drop');
+    await projectPage.navigateToProjectByName('Natural drop');
+    const names = ['Keep', 'A', 'B', 'C'].map((name) => testPrefix + '-' + name);
+    for (const name of [...names].reverse()) await workViewPage.addTask(name);
+    await createSection(page, 'another section');
+    await select(page, names.slice(1));
+    const order = await page
+      .locator('task.isMultiSelected .task-title')
+      .allTextContents();
+    await startDrag(
+      page,
+      page.locator('task.isMultiSelected').first().locator('done-toggle'),
+    );
+    const target = page.locator('.section-container .task-list-inner');
+    const box = await target.boundingBox();
+    if (!box) throw new Error('Missing section');
+    const centerX = box.width / 2;
+    const centerY = box.height / 2;
+    // A normal gesture aims once. It must not need the test helper's second aim.
+    await page.mouse.move(box.x + centerX, box.y + centerY, { steps: 25 });
+    await page.mouse.up();
+    await expect(page.locator('.section-container task .task-title')).toHaveText(order);
+    await expect(page.locator('.no-section task .task-title')).toHaveText([names[0]]);
+  });
+
   test('moves selected parents with their subtasks to a sidebar project', async ({
     page,
     workViewPage,
