@@ -488,48 +488,47 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
-    const newIds =
-      isGroupLeaderAtSamePosition
-        ? [...targetListData.filteredTasks]
-        : targetTask && targetTask.id !== draggedTask.id
-          ? (() => {
-              const currentDraggedIndex = targetListData.filteredTasks.findIndex(
-                (t) => t.id === draggedTask.id,
+    const newIds = isGroupLeaderAtSamePosition
+      ? [...targetListData.filteredTasks]
+      : targetTask && targetTask.id !== draggedTask.id
+        ? (() => {
+            const currentDraggedIndex = targetListData.filteredTasks.findIndex(
+              (t) => t.id === draggedTask.id,
+            );
+            const currentTargetIndex = targetListData.filteredTasks.findIndex(
+              (t) => t.id === targetTask.id,
+            );
+
+            // If dragging from a different list or new item, use target index
+            const isDraggingDown =
+              currentDraggedIndex !== -1 && currentDraggedIndex < currentTargetIndex;
+
+            if (isDraggingDown) {
+              // When dragging down, place AFTER the target item
+              const filtered = targetListData.filteredTasks.filter(
+                (t) => t.id !== draggedTask.id,
               );
-              const currentTargetIndex = targetListData.filteredTasks.findIndex(
+              const targetIndexInFiltered = filtered.findIndex(
                 (t) => t.id === targetTask.id,
               );
-
-              // If dragging from a different list or new item, use target index
-              const isDraggingDown =
-                currentDraggedIndex !== -1 && currentDraggedIndex < currentTargetIndex;
-
-              if (isDraggingDown) {
-                // When dragging down, place AFTER the target item
-                const filtered = targetListData.filteredTasks.filter(
-                  (t) => t.id !== draggedTask.id,
-                );
-                const targetIndexInFiltered = filtered.findIndex(
-                  (t) => t.id === targetTask.id,
-                );
-                const result = [...filtered];
-                result.splice(targetIndexInFiltered + 1, 0, draggedTask);
-                return result;
-              } else {
-                // When dragging up or from another list, place BEFORE the target item
-                return [
-                  ...moveItemBeforeItem(
-                    targetListData.filteredTasks,
-                    draggedTask,
-                    targetTask as TaskWithSubTasks,
-                  ),
-                ];
-              }
-            })()
-          : [
-              ...targetListData.filteredTasks.filter((t) => t.id !== draggedTask.id),
-              draggedTask,
-            ];
+              const result = [...filtered];
+              result.splice(targetIndexInFiltered + 1, 0, draggedTask);
+              return result;
+            } else {
+              // When dragging up or from another list, place BEFORE the target item
+              return [
+                ...moveItemBeforeItem(
+                  targetListData.filteredTasks,
+                  draggedTask,
+                  targetTask as TaskWithSubTasks,
+                ),
+              ];
+            }
+          })()
+        : [
+            ...targetListData.filteredTasks.filter((t) => t.id !== draggedTask.id),
+            draggedTask,
+          ];
     // Log ids only — task objects carry user titles/notes and the log history
     // is exportable (see core/log rule: never log user content).
     TaskLog.log(srcListData.listModelId, '=>', targetListData.listModelId, {

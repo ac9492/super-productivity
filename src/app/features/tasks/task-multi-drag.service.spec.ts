@@ -170,6 +170,30 @@ describe('TaskMultiDragService', () => {
     expect(service.isPlacementUnchanged('b', ['a', 'b', 'c'])).toBeTrue();
     expect(service.isPlacementUnchanged('b', ['a', 'c', 'b'])).toBeFalse();
   });
+  it('recognizes an unchanged group after an unselected anchor for either dragged member', () => {
+    sections.set([section('right', ['c', 'a', 'b'])]);
+    selection.toggle('b');
+    selection.toggle('a');
+    service.start(tasks()['a']);
+
+    expect(service.isPlacementUnchanged('a', ['c', 'a', 'b'])).toBeTrue();
+    expect(service.isPlacementUnchanged('b', ['c', 'a', 'b'])).toBeTrue();
+  });
+
+  it('groups separated selected tasks at the stationary leader slot', async () => {
+    sections.set([section('right', ['a', 'c', 'b'])]);
+    selection.toggle('b');
+    selection.toggle('a');
+    service.start(tasks()['a']);
+    expect(service.isPlacementUnchanged('a', ['a', 'c', 'b'])).toBeFalse();
+
+    await service.drop('right', 'a', ['a', 'c', 'b']);
+
+    expect(sectionService.addTaskToSection.calls.allArgs()).toEqual([
+      ['right', 'a', null, 'right'],
+      ['right', 'b', 'a', 'right'],
+    ]);
+  });
   it('returns sectioned tasks and root tasks to the exact root slot', async () => {
     start();
     await service.drop('UNDONE', 'a', ['c', 'a', 'b']);
