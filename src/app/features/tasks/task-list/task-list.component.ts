@@ -493,38 +493,38 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
         ? [...targetListData.filteredTasks]
         : targetTask && targetTask.id !== draggedTask.id
           ? (() => {
-            const currentDraggedIndex = targetListData.filteredTasks.findIndex(
-              (t) => t.id === draggedTask.id,
-            );
-            const currentTargetIndex = targetListData.filteredTasks.findIndex(
-              (t) => t.id === targetTask.id,
-            );
-
-            // If dragging from a different list or new item, use target index
-            const isDraggingDown =
-              currentDraggedIndex !== -1 && currentDraggedIndex < currentTargetIndex;
-
-            if (isDraggingDown) {
-              // When dragging down, place AFTER the target item
-              const filtered = targetListData.filteredTasks.filter(
-                (t) => t.id !== draggedTask.id,
+              const currentDraggedIndex = targetListData.filteredTasks.findIndex(
+                (t) => t.id === draggedTask.id,
               );
-              const targetIndexInFiltered = filtered.findIndex(
+              const currentTargetIndex = targetListData.filteredTasks.findIndex(
                 (t) => t.id === targetTask.id,
               );
-              const result = [...filtered];
-              result.splice(targetIndexInFiltered + 1, 0, draggedTask);
-              return result;
-            } else {
-              // When dragging up or from another list, place BEFORE the target item
-              return [
-                ...moveItemBeforeItem(
-                  targetListData.filteredTasks,
-                  draggedTask,
-                  targetTask as TaskWithSubTasks,
-                ),
-              ];
-            }
+
+              // If dragging from a different list or new item, use target index
+              const isDraggingDown =
+                currentDraggedIndex !== -1 && currentDraggedIndex < currentTargetIndex;
+
+              if (isDraggingDown) {
+                // When dragging down, place AFTER the target item
+                const filtered = targetListData.filteredTasks.filter(
+                  (t) => t.id !== draggedTask.id,
+                );
+                const targetIndexInFiltered = filtered.findIndex(
+                  (t) => t.id === targetTask.id,
+                );
+                const result = [...filtered];
+                result.splice(targetIndexInFiltered + 1, 0, draggedTask);
+                return result;
+              } else {
+                // When dragging up or from another list, place BEFORE the target item
+                return [
+                  ...moveItemBeforeItem(
+                    targetListData.filteredTasks,
+                    draggedTask,
+                    targetTask as TaskWithSubTasks,
+                  ),
+                ];
+              }
             })()
           : [
               ...targetListData.filteredTasks.filter((t) => t.id !== draggedTask.id),
@@ -538,14 +538,18 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
       newIds: newIds.map((t) => t.id),
     });
 
+    const groupOrderedIds =
+      this.multiDrag.ids().length > 1 ? newIds.map((task) => task.id) : null;
+    if (
+      groupOrderedIds &&
+      isGroupLeaderAtSamePosition &&
+      this.multiDrag.isPlacementUnchanged(draggedTask.id, groupOrderedIds)
+    ) {
+      return;
+    }
+
     this.dropListService.blockAniTrigger$.next();
-    if (this.multiDrag.ids().length > 1) {
-      const orderedIds = newIds.map((task) => task.id);
-      if (
-        isGroupLeaderAtSamePosition &&
-        this.multiDrag.isPlacementUnchanged(draggedTask.id, orderedIds)
-      )
-        return;
+    if (groupOrderedIds) {
       if (
         // CDK caches the target bounds before its placeholder moves the source row.
         // At drop time the original layout is restored, so check its live bounds
@@ -569,7 +573,7 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
         await this.multiDrag.drop(
           targetListData.listModelId,
           draggedTask.id,
-          orderedIds,
+          groupOrderedIds,
         );
         this._taskViewCustomizerService.setSort(DEFAULT_OPTIONS.sort);
       }
