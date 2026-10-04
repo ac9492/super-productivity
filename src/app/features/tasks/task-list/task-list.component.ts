@@ -1,3 +1,4 @@
+import { TaskMultiDragService } from '../task-multi-drag.service';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -17,7 +18,13 @@ import { filterDoneTasks } from '../filter-done-tasks.pipe';
 import { T } from '../../../t.const';
 import { taskListAnimation } from './task-list-ani';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { CdkDrag, CdkDragDrop, CdkDragStart, CdkDropList } from '@angular/cdk/drag-drop';
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragStart,
+  CdkDragPreview,
+  CdkDropList,
+} from '@angular/cdk/drag-drop';
 import { WorkContextType } from '../../work-context/work-context.model';
 import { moveTaskInTodayList } from '../../work-context/store/work-context-meta.actions';
 import { getAnchorFromDragDrop } from '../../work-context/store/work-context-meta.helper';
@@ -101,12 +108,14 @@ export interface DropModelDataForList {
     MatIcon,
     CdkDropList,
     CdkDrag,
+    CdkDragPreview,
     AsyncPipe,
     TranslatePipe,
     forwardRef(() => TaskComponent),
   ],
 })
 export class TaskListComponent implements OnDestroy, AfterViewInit {
+  readonly multiDrag = inject(TaskMultiDragService);
   private _taskService = inject(TaskService);
   private _workContextService = inject(WorkContextService);
   private _store = inject(Store);
@@ -203,7 +212,12 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
   }
 
   onDragStarted(task: TaskWithSubTasks, event: CdkDragStart): void {
-    this._scheduleExternalDragService.setActiveTask(task, event.source._dragRef);
+    this.multiDrag.start(task);
+    // External schedule/tag drops remain single-task paths.
+    this._scheduleExternalDragService.setActiveTask(
+      this.multiDrag.ids().length > 1 ? null : task,
+      event.source._dragRef,
+    );
     if (task.parentId) {
       // Runs synchronously before CDK's `_startReceiving` pass, so the
       // top-level lists get their geometry cached even though the pointer is
@@ -214,6 +228,7 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
   }
 
   onDragEnded(): void {
+    this.multiDrag.finish();
     this._clearDragPointerTracking?.();
     this._scheduleExternalDragService.setActiveTask(null);
     this.dropListService.setActiveDragPointer(null);
@@ -239,6 +254,12 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
 
   enterPredicate = (drag: CdkDrag, drop: CdkDropList): boolean => {
     // TODO this gets called very often for nested lists. Maybe there are possibilities to optimize
+    if (this.multiDrag.ids().length > 1)
+      return this.multiDrag.canDrop(
+        drop.data.listId,
+        drop.data.listModelId,
+        drop.data.groupTagId,
+      );
     const task = drag.data;
     const targetModelId = drop.data.listModelId;
     const targetListId = drop.data.listId;
@@ -423,6 +444,12 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    if (
+      this.multiDrag.ids().length > 1 &&
+      ev.previousContainer === ev.container &&
+      ev.previousIndex === ev.currentIndex
+    )
+      return;
     const targetTask = targetListData.filteredTasks[ev.currentIndex] as TaskCopy;
 
     if ('issueData' in draggedTask) {
@@ -431,7 +458,7 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
       throw new Error('Should not happen 2');
     }
 
-    if (targetTask && targetTask.id === draggedTask.id) {
+    if (!this.multiDrag.ids().length && targetTask && targetTask.id === draggedTask.id) {
       return;
     }
 
@@ -512,6 +539,24 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
     });
 
     this.dropListService.blockAniTrigger$.next();
+    if (this.multiDrag.ids().length > 1) {
+      if (
+        ev.isPointerOverContainer &&
+        this.multiDrag.canDrop(
+          targetListData.listId,
+          targetListData.listModelId,
+          targetListData.groupTagId,
+        )
+      ) {
+        await this.multiDrag.drop(
+          targetListData.listModelId,
+          draggedTask.id,
+          newIds.map((task) => task.id),
+        );
+        this._taskViewCustomizerService.setSort(DEFAULT_OPTIONS.sort);
+      }
+      return;
+    }
     this._move(
       draggedTask.id,
       srcListData.listModelId,

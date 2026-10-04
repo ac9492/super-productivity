@@ -91,3 +91,11 @@
     box-shadow: none !important;
   }
 }
+
+.multi-task-drag-preview {
+  padding: var(--s2) var(--s3);
+  background: var(--bg-lighter);
+  color: var(--text-color);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--task-border-radius);
+}

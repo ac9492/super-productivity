@@ -1,3 +1,4 @@
+import { TaskMultiDragService } from '../task-multi-drag.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TaskListComponent } from './task-list.component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
@@ -81,6 +82,18 @@ describe('TaskListComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TaskListComponent, NoopAnimationsModule],
       providers: [
+        {
+          provide: TaskMultiDragService,
+          useValue: {
+            ids: () => [],
+            selectedIds: () => new Set(),
+            selectionSize: () => 0,
+            start: () => {},
+            clear: () => {},
+            finish: () => {},
+            canDrop: () => false,
+          },
+        },
         provideMockStore({ initialState: {} }),
         {
           provide: TaskService,

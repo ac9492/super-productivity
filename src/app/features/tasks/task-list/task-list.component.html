@@ -50,6 +50,21 @@
       (cdkDragStarted)="onDragStarted(task, $event)"
       (cdkDragEnded)="onDragEnded()"
     >
+      @if (
+        !task.parentId &&
+        multiDrag.selectedIds().has(task.id) &&
+        multiDrag.selectionSize() > 1
+      ) {
+        <ng-template cdkDragPreview>
+          <div class="multi-task-drag-preview">
+            {{
+              T.F.TASK.MULTI_SELECT.SELECTED_COUNT
+                | translate
+                  : { count: multiDrag.ids().length || multiDrag.selectionSize() }
+            }}
+          </div>
+        </ng-template>
+      }
     </task>
   }
 </div>
