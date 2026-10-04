@@ -94,6 +94,7 @@ describe('TaskListComponent', () => {
             clear: () => {},
             finish: () => {},
             canDrop: () => false,
+            isPlacementUnchanged: () => false,
             drop: () => Promise.resolve(),
           },
         },
@@ -786,6 +787,7 @@ describe('TaskListComponent', () => {
     beforeEach(() => {
       spyOn(component.multiDrag, 'ids').and.returnValue(['t1', 't2', 't3']);
       spyOn(component.multiDrag, 'canDrop').and.returnValue(true);
+      spyOn(component.multiDrag, 'isPlacementUnchanged').and.returnValue(false);
       moveGroup = spyOn(component.multiDrag, 'drop').and.resolveTo();
     });
 
@@ -793,6 +795,80 @@ describe('TaskListComponent', () => {
       await component.drop(groupEvent({ x: 300, y: 325 }));
       expect(moveGroup).toHaveBeenCalledOnceWith('section', 't1', ['t1']);
       expect(store.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('keeps the actual destination order when the group leader stays at the same index', async () => {
+      const data = {
+        listId: 'PARENT',
+        listModelId: 'section',
+        filteredTasks: [{ id: 'before' }, { id: 't1' }, { id: 'after' }],
+      };
+      const container = {
+        data,
+        element: {
+          nativeElement: {
+            getBoundingClientRect: () => ({
+              left: 100,
+              right: 500,
+              top: 300,
+              bottom: 350,
+            }),
+          },
+        },
+      };
+      await component.drop({
+        previousContainer: container,
+        container,
+        item: { data: { id: 't1' } },
+        previousIndex: 1,
+        currentIndex: 1,
+        isPointerOverContainer: true,
+        dropPoint: { x: 300, y: 325 },
+      } as unknown as Parameters<TaskListComponent['drop']>[0]);
+
+      expect(component.multiDrag.isPlacementUnchanged).toHaveBeenCalledOnceWith('t1', [
+        'before',
+        't1',
+        'after',
+      ]);
+      expect(moveGroup).toHaveBeenCalledOnceWith('section', 't1', [
+        'before',
+        't1',
+        'after',
+      ]);
+    });
+
+    it('skips a same-index group drop only when the complete placement is unchanged', async () => {
+      (component.multiDrag.isPlacementUnchanged as jasmine.Spy).and.returnValue(true);
+      const data = {
+        listId: 'PARENT',
+        listModelId: 'section',
+        filteredTasks: [{ id: 't1' }],
+      };
+      const container = {
+        data,
+        element: {
+          nativeElement: {
+            getBoundingClientRect: () => ({
+              left: 100,
+              right: 500,
+              top: 300,
+              bottom: 350,
+            }),
+          },
+        },
+      };
+      await component.drop({
+        previousContainer: container,
+        container,
+        item: { data: { id: 't1' } },
+        previousIndex: 0,
+        currentIndex: 0,
+        isPointerOverContainer: true,
+        dropPoint: { x: 300, y: 325 },
+      } as unknown as Parameters<TaskListComponent['drop']>[0]);
+
+      expect(moveGroup).not.toHaveBeenCalled();
     });
 
     it('cancels the group move when released outside cached and live bounds', async () => {

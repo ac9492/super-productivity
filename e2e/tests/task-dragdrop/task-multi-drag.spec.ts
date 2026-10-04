@@ -71,6 +71,50 @@ test.describe('Multi-task drag', () => {
     ]);
   });
 
+  test('moves a cross-section selection into the dragged leader existing section', async ({
+    page,
+    workViewPage,
+    projectPage,
+    testPrefix,
+  }) => {
+    await workViewPage.waitForTaskList();
+    await projectPage.createProject('Leader section');
+    await projectPage.navigateToProjectByName('Leader section');
+    const names = ['A', 'B'].map((name) => testPrefix + '-' + name);
+    for (const name of names) await workViewPage.addTask(name);
+    await createSection(page, 'Left');
+    await createSection(page, 'Right');
+    const section = (name: string): Locator =>
+      page.locator('.section-container').filter({
+        has: page.locator('.collapsible-title', { hasText: name }),
+      });
+    const row = (name: string): Locator =>
+      page
+        .locator('task:not(.cdk-drag-preview)')
+        .filter({ has: page.locator('task-title', { hasText: name }) })
+        .first();
+
+    await startDrag(page, row(names[0]).locator('done-toggle'));
+    await drop(page, section('Left').locator('task-list').first());
+    await startDrag(page, row(names[1]).locator('done-toggle'));
+    await drop(page, section('Right').locator('task-list').first());
+    await expect(section('Left').locator('task .task-title')).toHaveText([names[0]]);
+    await expect(section('Right').locator('task .task-title')).toHaveText([names[1]]);
+
+    await select(page, names);
+    const order = await page
+      .locator('task.isMultiSelected .task-title')
+      .allTextContents();
+    await startDrag(page, row(names[1]).locator('done-toggle'));
+    await drop(page, section('Right').locator('task-list').first());
+
+    await expect(section('Left').locator('task')).toHaveCount(0);
+    await expect(section('Right').locator('task .task-title')).toHaveText(order);
+    await page.reload();
+    await workViewPage.waitForTaskList();
+    await expect(section('Right').locator('task .task-title')).toHaveText(order);
+  });
+
   test('Shift-click selects across sections and drags the displayed range together', async ({
     page,
     workViewPage,

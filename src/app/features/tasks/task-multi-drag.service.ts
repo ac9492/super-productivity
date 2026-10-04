@@ -131,16 +131,29 @@ export class TaskMultiDragService {
     );
   }
 
+  isPlacementUnchanged(leaderId: string, orderedIds: string[]): boolean {
+    const ids = [...this.ids()];
+    if (ids.length < 2) return false;
+    const selected = new Set(ids);
+    const afterTaskId = this._getGroupAnchor(leaderId, orderedIds, selected);
+    const remaining = orderedIds.filter((id) => !selected.has(id));
+    const anchorIndex = afterTaskId === null ? -1 : remaining.indexOf(afterTaskId);
+    if (afterTaskId !== null && anchorIndex < 0) return false;
+    const intended = [...remaining];
+    intended.splice(anchorIndex + 1, 0, ...ids);
+    return (
+      intended.length === orderedIds.length &&
+      intended.every((id, index) => id === orderedIds[index])
+    );
+  }
+
   async drop(modelId: string, leaderId: string, orderedIds: string[]): Promise<void> {
     if (!this.canDrop('PARENT', modelId)) return;
     const projectId = this._context.activeWorkContextId!;
     const ids = [...this.ids()];
     const selected = new Set(ids);
     // CDK moves one placeholder; remove the other selected rows from its anchor.
-    const afterLeader = getAnchorFromDragDrop(leaderId, orderedIds);
-    let anchorIndex = afterLeader === null ? -1 : orderedIds.indexOf(afterLeader);
-    while (anchorIndex >= 0 && selected.has(orderedIds[anchorIndex])) anchorIndex--;
-    let afterTaskId = anchorIndex < 0 ? null : orderedIds[anchorIndex];
+    let afterTaskId = this._getGroupAnchor(leaderId, orderedIds, selected);
     const sections = this._sections().filter(
       (section) =>
         section.contextId === projectId &&
@@ -188,5 +201,16 @@ export class TaskMultiDragService {
 
   moveToProject(projectId: string, ids: readonly string[]): Promise<void> {
     return this._bulk.moveToProject(projectId, ids);
+  }
+
+  private _getGroupAnchor(
+    leaderId: string,
+    orderedIds: string[],
+    selected: ReadonlySet<string>,
+  ): string | null {
+    const afterLeader = getAnchorFromDragDrop(leaderId, orderedIds);
+    let anchorIndex = afterLeader === null ? -1 : orderedIds.indexOf(afterLeader);
+    while (anchorIndex >= 0 && selected.has(orderedIds[anchorIndex])) anchorIndex--;
+    return anchorIndex < 0 ? null : orderedIds[anchorIndex];
   }
 }

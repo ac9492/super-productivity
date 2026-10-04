@@ -444,12 +444,10 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
-    if (
+    const isGroupLeaderAtSamePosition =
       this.multiDrag.ids().length > 1 &&
       ev.previousContainer === ev.container &&
-      ev.previousIndex === ev.currentIndex
-    )
-      return;
+      ev.previousIndex === ev.currentIndex;
     const targetTask = targetListData.filteredTasks[ev.currentIndex] as TaskCopy;
 
     if ('issueData' in draggedTask) {
@@ -491,8 +489,10 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
     }
 
     const newIds =
-      targetTask && targetTask.id !== draggedTask.id
-        ? (() => {
+      isGroupLeaderAtSamePosition
+        ? [...targetListData.filteredTasks]
+        : targetTask && targetTask.id !== draggedTask.id
+          ? (() => {
             const currentDraggedIndex = targetListData.filteredTasks.findIndex(
               (t) => t.id === draggedTask.id,
             );
@@ -525,11 +525,11 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
                 ),
               ];
             }
-          })()
-        : [
-            ...targetListData.filteredTasks.filter((t) => t.id !== draggedTask.id),
-            draggedTask,
-          ];
+            })()
+          : [
+              ...targetListData.filteredTasks.filter((t) => t.id !== draggedTask.id),
+              draggedTask,
+            ];
     // Log ids only — task objects carry user titles/notes and the log history
     // is exportable (see core/log rule: never log user content).
     TaskLog.log(srcListData.listModelId, '=>', targetListData.listModelId, {
@@ -540,6 +540,12 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
 
     this.dropListService.blockAniTrigger$.next();
     if (this.multiDrag.ids().length > 1) {
+      const orderedIds = newIds.map((task) => task.id);
+      if (
+        isGroupLeaderAtSamePosition &&
+        this.multiDrag.isPlacementUnchanged(draggedTask.id, orderedIds)
+      )
+        return;
       if (
         // CDK caches the target bounds before its placeholder moves the source row.
         // At drop time the original layout is restored, so check its live bounds
@@ -563,7 +569,7 @@ export class TaskListComponent implements OnDestroy, AfterViewInit {
         await this.multiDrag.drop(
           targetListData.listModelId,
           draggedTask.id,
-          newIds.map((task) => task.id),
+          orderedIds,
         );
         this._taskViewCustomizerService.setSort(DEFAULT_OPTIONS.sort);
       }

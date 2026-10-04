@@ -143,6 +143,33 @@ describe('TaskMultiDragService', () => {
       ['right', 'a', 'b', 'left'],
     ]);
   });
+
+  it('moves a cross-section selection into the leader section when the leader keeps its slot', async () => {
+    sections.set([section('left', ['a']), section('right', ['b', 'c'])]);
+    selection.toggle('b');
+    selection.toggle('a');
+    service.start(tasks()['b']);
+    expect(service.ids()).toEqual(['a', 'b']);
+    expect(service.isPlacementUnchanged('b', ['b', 'c'])).toBeFalse();
+
+    await service.drop('right', 'b', ['b', 'c']);
+
+    expect(sectionService.addTaskToSection.calls.allArgs()).toEqual([
+      ['right', 'a', null, 'left'],
+      ['right', 'b', 'a', 'right'],
+    ]);
+  });
+
+  it('recognizes only an unchanged whole-group placement as a no-op', () => {
+    sections.set([section('right', ['a', 'b', 'c'])]);
+    selection.toggle('b');
+    selection.toggle('a');
+    service.start(tasks()['b']);
+    expect(service.ids()).toEqual(['a', 'b']);
+
+    expect(service.isPlacementUnchanged('b', ['a', 'b', 'c'])).toBeTrue();
+    expect(service.isPlacementUnchanged('b', ['a', 'c', 'b'])).toBeFalse();
+  });
   it('returns sectioned tasks and root tasks to the exact root slot', async () => {
     start();
     await service.drop('UNDONE', 'a', ['c', 'a', 'b']);
