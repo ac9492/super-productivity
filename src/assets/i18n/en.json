@@ -1869,6 +1869,7 @@
         "TOGGLE_DETAIL_PANEL": "Show/hide task panel",
         "TOGGLE_DONE": "Toggle completion status",
         "TOGGLE_SUB_TASK_VISIBILITY": "Toggle subtask visibility",
+        "SUBTASK_PROGRESS": "Completed subtasks",
         "TOGGLE_TAGS": "Toggle tags",
         "TRACK_TIME": "Start tracking time",
         "TRACK_TIME_STOP": "Pause tracking time",

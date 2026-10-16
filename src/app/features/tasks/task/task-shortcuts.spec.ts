@@ -265,6 +265,56 @@ describe('TaskComponent shortcut handling', () => {
     fixture.componentRef.setInput('isBacklog', false);
   });
 
+  describe('subtask completion counts', () => {
+    it('returns zero counts when the task has no subtasks', () => {
+      fixture.componentRef.setInput('task', createTopLevelTask('Parent'));
+
+      expect(component.subtaskProgress()).toEqual({ total: 0, done: 0 });
+    });
+
+    it('counts all subtasks even when completed or all subtasks are hidden', () => {
+      const subTasks = [
+        { ...createSubTask('Done'), id: 'done', isDone: true },
+        { ...createSubTask('Open'), id: 'open', isDone: false },
+      ];
+
+      for (const mode of [HideSubTasksMode.HideDone, HideSubTasksMode.HideAll]) {
+        fixture.componentRef.setInput('task', {
+          ...createTopLevelTask('Parent'),
+          subTasks,
+          subTaskIds: subTasks.map(({ id }) => id),
+          _hideSubTasksMode: mode,
+        });
+
+        expect(component.subtaskProgress()).toEqual({ total: 2, done: 1 });
+      }
+    });
+
+    it('updates counts when subtasks are completed or removed', () => {
+      const subTask = createSubTask('Child');
+      const task = {
+        ...createTopLevelTask('Parent'),
+        subTasks: [subTask],
+        subTaskIds: [subTask.id],
+      };
+      fixture.componentRef.setInput('task', task);
+      expect(component.subtaskProgress()).toEqual({ total: 1, done: 0 });
+
+      fixture.componentRef.setInput('task', {
+        ...task,
+        subTasks: [{ ...subTask, isDone: true }],
+      });
+      expect(component.subtaskProgress()).toEqual({ total: 1, done: 1 });
+
+      fixture.componentRef.setInput('task', {
+        ...task,
+        subTasks: [],
+        subTaskIds: [],
+      });
+      expect(component.subtaskProgress()).toEqual({ total: 0, done: 0 });
+    });
+  });
+
   describe('scheduled-date badge colors', () => {
     beforeEach(() => {
       const dateService = TestBed.inject(DateService) as jasmine.SpyObj<DateService>;
