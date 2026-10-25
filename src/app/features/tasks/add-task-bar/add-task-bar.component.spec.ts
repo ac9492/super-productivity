@@ -608,6 +608,10 @@ describe('AddTaskBarComponent', () => {
     });
 
     it('moves a backlog task picked in a project to its regular list (#10838)', async () => {
+      Object.defineProperties(mockWorkContextService, {
+        activeWorkContextType: { value: WorkContextType.PROJECT },
+        activeWorkContextId: { value: 'project-2' },
+      });
       const suggestion = {
         title: 'Existing task',
         taskId: 'task-1',
