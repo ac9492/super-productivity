@@ -766,10 +766,15 @@ export class AddTaskBarComponent implements AfterViewInit, OnInit, OnDestroy {
       if (planForDay) {
         await this._planTaskForCurrentDay(suggestion.taskId);
         didPlanForDay = true;
-      } else if (suggestion.projectId) {
-        // Project contexts only suggest the project's own backlog tasks, so
-        // this is a move from the backlog, like the issue search's one.
+      } else if (
+        this._workContextService.activeWorkContextType === WorkContextType.PROJECT &&
+        suggestion.projectId &&
+        suggestion.projectId === this._workContextService.activeWorkContextId
+      ) {
         this._projectService.moveTaskToTodayList(suggestion.taskId, suggestion.projectId);
+      } else {
+        const task = await this._taskService.getByIdOnce$(suggestion.taskId).toPromise();
+        this._taskService.moveToCurrentWorkContext(task);
       }
 
       if (suggestion.isArchivedTask) {
