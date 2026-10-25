@@ -580,20 +580,16 @@ test.describe('Sections', () => {
   }) => {
     await setupTestProject(workViewPage, projectPage);
     await workViewPage.addTask('Existing suggested task');
-    await page.evaluate(() => {
-      const store = (
-        window as unknown as {
-          __e2eTestHelpers: { store: { dispatch: (action: unknown) => void } };
-        }
-      ).__e2eTestHelpers.store;
-      store.dispatch({
-        type: '[Project] Update Project',
-        project: {
-          id: window.location.hash.split('/')[2],
-          changes: { isEnableBacklog: true },
-        },
-      });
-    });
+    await openProjectContextMenu(page);
+    await page
+      .locator('work-context-menu button[mat-menu-item]')
+      .filter({ hasText: 'Settings' })
+      .click();
+    const settingsDialog = page.locator('dialog-work-context-settings');
+    await settingsDialog.waitFor({ state: 'visible' });
+    await settingsDialog.getByRole('switch', { name: 'Enable Project Backlog' }).click();
+    await settingsDialog.getByRole('button', { name: 'Save' }).click();
+    await settingsDialog.waitFor({ state: 'hidden' });
     await page
       .locator('task')
       .filter({ hasText: 'Existing suggested task' })
