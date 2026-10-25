@@ -284,6 +284,10 @@
                   listId="PARENT"
                   listModelId="UNDONE"
                 ></task-list>
+                <add-task-inline
+                  [label]="T.F.TASK.ADD_TASK_BAR.TOOLTIP_ADD_TASK"
+                  [isListAction]="true"
+                ></add-task-inline>
                 @if (isProjectContext() && !customizerService.isCustomized()) {
                   <button
                     type="button"
